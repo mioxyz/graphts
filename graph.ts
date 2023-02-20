@@ -38,6 +38,12 @@ export class Vertex<T extends Clonable> {
       this.graph.adjacent.splice(this.id, 1);
       this.graph.vertices.splice(this.id, 1);
    }
+
+   sprout(contents:T):Vertex<T> {
+      const leaf = this.graph.addVertexByContents(contents);
+      this.graph.addEdge(this, leaf);
+      return leaf;
+   }
 }
 
 /**

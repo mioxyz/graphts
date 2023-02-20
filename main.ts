@@ -1,61 +1,62 @@
 #!/usr/bin/env bun
 import { Graph, Clonable } from "./graph";
 
-class VertexString implements Clonable {
-   clone():VertexString {
-      return new VertexString(this.contents);
+enum RegexContainerType {
+   Root = 0,
+   Asterisk = 1,
+   Dot = 2,
+   Bracket = 3,
+   Const = 255,
+};
+
+const randomRegexContainerType = () => {
+   const x = [ RegexContainerType.Root, RegexContainerType.Asterisk, RegexContainerType.Dot,
+      RegexContainerType.Bracket, RegexContainerType.Const, ];
+      return x[Math.floor(Math.random()*5)];
+}
+const randomLeafSymbol = function() {
+   const x = ['a', 'b', 'c'];
+   return x[Math.floor(Math.random()*5)];
+}
+
+class RegexContainer implements Clonable {
+
+   clone():RegexContainer {
+      return new RegexContainer(
+         this.containerType
+       , this.leafSymbol
+      );
    }
 
-   constructor(public contents:string) { }
+   constructor(
+      public containerType:RegexContainerType
+    , public leafSymbol:string = 'x'
+   ) {}
+
+   static makeRandom():RegexContainer {
+      const t = randomRegexContainerType();
+      return new RegexContainer(t, 'a');
+   }
 }
 
-function testA() {
-   let g = new Graph<VertexString>(VertexString);
-   const A = g.addVertex("A", "vertexStringContentA");
-   const B = g.addVertex("B", "vertexStringContentB");
-   const C = g.addVertex("C", "vertexStringContentC");
+const printRegexContainerGraph = (g:Graph<RegexContainer>) => {
 
-   g.addEdge(A, A);
-   g.addEdge(A, B);
-   g.addEdge(B, C);
-   g.printAdjacencyMatrix();
-   g.cloneSubgraph(A);
-   g.printAdjacencyMatrix();
-}
-
-function testB() {
-   console.log("--- Test B");
-   let g = new Graph<VertexString>(VertexString);
-
-   const A = g.addVertex("A", "vertexStringContentA");
-   const B = g.addVertex("B", "vertexStringContentB");
-   const C = g.addVertex("C", "vertexStringContentC");
-
-   g.addEdge(A,A);
-   // g.addEdge(A,C);
-   g.addEdge(C,A)
-   g.addEdge(C,C);
-   console.log(" ORIGINAL GRAPH: ");
-   g.printAdjacencyMatrix();
-   let x = g.cloneSubgraph(A);
-   console.log(" GRAPH WITH CLONED PART: ");
-   g.printAdjacencyMatrix();
-   B.delete();
-   console.log(" GRAPH AFTER DELETE »B« OF CLONED SUB-GRAPH: ");
-   g.printAdjacencyMatrix();
-
-   g.cloneSubgraph(C);
-   console.log(" GRAPH AFTER 2nd CLONED SUB-GRAPH: ");
-   g.printAdjacencyMatrix();
-   g.deleteSubgraph(C);
-
-   console.log(" GRAPH AFTER DEL SUB-GRAPH: ");
-   g.printAdjacencyMatrix();
-
-
-
+   
 }
 
 
-// testA();
-testB();
+const generatePatterns = (sz:number = 3) => {
+   const g = new Graph<RegexContainer>(RegexContainer);
+   for(let k = 0; k < sz; ++k) {
+      const v = g.addVertexByContents(RegexContainer.makeRandom());
+      if(v.contents!.containerType == RegexContainerType.Bracket) {
+         // add some bracket contents...
+         v.sprout(new RegexContainer(RegexContainerType.Const, randomLeafSymbol()));
+         while(Math.random() > 0.5) v.sprout(new RegexContainer(RegexContainerType.Const, randomLeafSymbol()));
+      }
+      
+   }
+}
+
+
+generatePatterns();
