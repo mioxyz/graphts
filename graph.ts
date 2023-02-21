@@ -24,6 +24,16 @@ export class Vertex<T extends Clonable> {
             action(this.graph.vertices[k]);
    }
 
+   isAdjacentTo(other:Vertex<T>):boolean {
+      //console.log(this.graph);
+      return this.graph.adjacent[this.id][other.id];
+   }
+
+   getAdjacent():Vertex<T>[] {
+      //console.log(this.graph);
+      return this.graph.vertices.filter( this.isAdjacentTo.bind(this) );
+   }
+
    delete() {
       this.deleteWithoutIdNormalization();
       this.graph.normalizeVertexIds();
