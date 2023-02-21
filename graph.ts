@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 
 // @ts - ignore
+import './array_extensions';
 
 export interface Clonable {
    // id: number;
@@ -9,12 +10,14 @@ export interface Clonable {
    //constructor(ids:number, args...);
 }
 
+const VERTEX_DEFAULT_NAME="NO_NAME";
+
 export class Vertex<T extends Clonable> {
    public traversed:boolean = false;
    constructor(
       private graph:Graph<T>
     , public id:number
-    , public name:string = "NO_NAME"
+    , public name:string = VERTEX_DEFAULT_NAME
     , public contents:T|null = null
    ){ }
 
@@ -34,6 +37,14 @@ export class Vertex<T extends Clonable> {
       return this.graph.vertices.filter( this.isAdjacentTo.bind(this) );
    }
 
+   addEdgeTo(leaf:Vertex<T>):void {
+      this.graph.addEdge(this, leaf);
+   }
+
+   removeEdgeTo(leaf:Vertex<T>):void {
+      this.graph.removeEdge(this, leaf);
+   }
+
    delete() {
       this.deleteWithoutIdNormalization();
       this.graph.normalizeVertexIds();
@@ -49,11 +60,30 @@ export class Vertex<T extends Clonable> {
       this.graph.vertices.splice(this.id, 1);
    }
 
-   sprout(contents:T):Vertex<T> {
-      const leaf = this.graph.addVertexByContents(contents);
+   sprout(contents:T, name:string = VERTEX_DEFAULT_NAME):Vertex<T> {
+      const leaf = this.graph.addVertexByContents(contents, name);
       this.graph.addEdge(this, leaf);
       return leaf;
    }
+
+   /**
+    * moves this vertex before the other one in both the adjacency matrix and
+    * the vertices array of the host graph.
+    * see: notes.md#1
+    */
+   moveTo(other:Vertex<T>):void {
+      // const moveBeforeHelper = function(arr:Array<any>, target:number, destination:number) {
+      //    arr.splice(destination, 0, arr.splice(target, 1)[0]);
+      // }
+      // moveBeforeHelper(this.graph.vertices, this.id, other.id);
+      // this.graph.adjacent.forEach( row => moveBeforeHelper(row, this.id, other.id) );
+      // moveBeforeHelper(this.graph.adjacent, this.id, other.id);
+      this.graph.vertices.move(this.id, other.id);
+      this.graph.adjacent.forEach( row => row.move(this.id, other.id) );
+      this.graph.adjacent.move(this.id, other.id);
+      this.graph.normalizeVertexIds();
+   }
+
 }
 
 /**
@@ -65,7 +95,7 @@ export class Graph<T extends Clonable> {
    public vertices: Vertex<T>[];
 
    constructor(type:{new(...args:any[]):T;}) {
-      this.addVertex = (name:string = "NO_NAME", ...args):Vertex<T> => {
+      this.addVertex = (name:string = VERTEX_DEFAULT_NAME, ...args):Vertex<T> => {
          const vertex  = new Vertex<T>(this, this.vertices.length, name, new type(...args));
          this.vertices.push(vertex);
          this.adjacent[vertex.id] = new Array<boolean>();
@@ -80,11 +110,11 @@ export class Graph<T extends Clonable> {
       this.vertices = new Array().fill(null);
    }
 
-   /*VIRTUAL*/ addVertex(name:string = "NO_NAME", ...args):Vertex<T> {
+   /*VIRTUAL*/ addVertex(name:string = VERTEX_DEFAULT_NAME, ...args):Vertex<T> {
       return new Vertex<T>(this, this.vertices.length, name);
    };
 
-   addVertexByContents(contents:T, name:string = "NO_NAME") :Vertex<T> {
+   addVertexByContents(contents:T, name:string = VERTEX_DEFAULT_NAME) :Vertex<T> {
       const elem  = new Vertex<T>(this, this.vertices.length, name, contents);
       this.vertices.push(elem);
       this.adjacent[elem.id] = new Array<boolean>();
@@ -107,6 +137,11 @@ export class Graph<T extends Clonable> {
    addEdge(v:Vertex<T>, w:Vertex<T>) {
       this.adjacent[v.id][w.id] = true;
    }
+
+   removeEdge(v:Vertex<T>, w:Vertex<T>) {
+      this.adjacent[v.id][w.id] = false;
+   }
+
 
    forEachVertex( action:(vertex:Vertex<T>) => void) {
       for(let k = 0; k < this.vertices.length; ++k)
@@ -153,7 +188,7 @@ export class Graph<T extends Clonable> {
     * @return v' (the arbitrary root of the cloned connected graph G', analogous to, and twin of, v).
     */
    cloneSubgraph(root:Vertex<T>):Vertex<T> {
-      console.log("+++cloneSubgraph");
+      //console.log("+++cloneSubgraph");
       this.markConnectedSubgraph(root);
       // let indexVertex = new Array<[number, Vertex<T>]>();
       // for(let k = 0; k < this.vertices.length; ++k) {
