@@ -1,6 +1,8 @@
 #!/usr/bin/env bun
 import { Graph, Clonable, Vertex } from "./graph";
 import './array_extensions';
+import chalk from 'chalk';
+import { a2d_diff, a2d_print } from "./array_2d_helper";
 
 enum RegexContainerType {
    Root     = 0  ,
@@ -34,7 +36,7 @@ const randomRegexContainerType = () => {
 }
 const randomLeafSymbol = function() {
    const x = ['a', 'b', 'c'];
-   return x[Math.floor(Math.random()*5)];
+   return x[Math.floor(Math.random()*3)];
 }
 
 class RegexContainer implements Clonable {
@@ -74,7 +76,7 @@ const getRoot = (g:Graph<RegexContainer>):Vertex<RegexContainer>|undefined => {
    return g.vertices.find( vertex => vertex.contents?.containerType == RegexContainerType.Root );
 }
 
-const reduceLeaves = function(graph:Graph<RegexContainer>, root:Vertex<RegexContainer>):void {
+const makeSane = function(graph:Graph<RegexContainer>, root:Vertex<RegexContainer>):void {
    // remove adjacent asterisk chars.
    for(let dirty = true; dirty;) {
       dirty = false;
@@ -87,7 +89,51 @@ const reduceLeaves = function(graph:Graph<RegexContainer>, root:Vertex<RegexCont
          } else previous = leaf;  
       });
    }
+   // remove duplicate Const in Brackets (TODO: not really necessary now that I think about it...)
+   root.forEachAdjacent( (leaf:Vertex<RegexContainer>) => {
+      if(leaf.contents!.containerType == RegexContainerType.Bracket) {
+         // iterate over adjacents of Bracket.
+         while(true) {
+            let consts = new Array<string>();
+            let leave = true;
+            console.log(consts);
+            leaf.forEachAdjacent( bracketLeaf => {
+               if(!leave) return;
+               if(!consts.includes(bracketLeaf!.contents?.leafSymbol!)) {
+                  consts.push(bracketLeaf!.contents?.leafSymbol!);
+               }else{
+                  //...otherwise we have a dupe const
+                  bracketLeaf.delete();
+                  leave = false;
+                  console.log("already includes:", bracketLeaf!.contents?.leafSymbol!);
+               }
+            });
+            if(leave) break;
+         }
+      }
+   });
 
+   // collapse Brackets into const (decide for some const)
+   root.forEachAdjacent( (leaf:Vertex<RegexContainer>) => {
+      if(leaf.contents!.containerType == RegexContainerType.Bracket) {
+         // iterate over adjacents of Bracket.
+         while(true) {
+            let consts = new Array<string>();
+            let leave = true;
+            console.log(consts);
+            leaf.getAdjacent().random();
+
+            if(leave) break;
+         }
+      }
+   });
+   
+   
+}
+
+
+const reduceLeaves = function(graph:Graph<RegexContainer>, root:Vertex<RegexContainer>):void {
+   console.log("+++reduceLeaves");
    // process asterisk chars.
    for(let dirty = true; dirty;) {
       console.log(">>>>>>>>>> DIRTY <<<<<<<<<<<<");
@@ -95,7 +141,7 @@ const reduceLeaves = function(graph:Graph<RegexContainer>, root:Vertex<RegexCont
       let previous:Vertex<RegexContainer>|null = null;
       let previousId = 0;
       root.getAdjacent().forEach( (leaf:Vertex<RegexContainer>) => {
-         if(leaf.contents!.containerType != RegexContainerType.Asterisk && null == previous) {
+         if(leaf.contents!.containerType != RegexContainerType.Asterisk || null == previous) {
             previous = leaf;
          } else {
             //duplicate the last leaf N times... https://www.desmos.com/calculator/vpxuztv2qh
@@ -151,11 +197,29 @@ const generatePatterns = (sz:number = 10) => {
          }
       }
    }
-   g.printAdjacencyMatrix();
+   makeSane(g, root);
+
    printRegexContainerGraph(g);
+   g.printAdjacencyMatrix();
+   const adj_A = g.cloneAdjacencyMatrix();
+
    reduceLeaves(g, root);
+
    g.printAdjacencyMatrix();
    printRegexContainerGraph(g);
+   const adj_B = g.cloneAdjacencyMatrix();
+
+   console.log("adj_A");
+   a2d_print(adj_A);
+   console.log("adj_B");
+   a2d_print(adj_B);
+   ////adj_B[3][3] = true;
+
+   const ret = a2d_diff(adj_A, adj_B);
+   a2d_print(ret);
+
+   //ret.map( row => console.log(row.map( cell => (cell) ? 1 : 0)))
+
 }
 
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
-
 // @ts - ignore
 import './array_extensions';
+import chalk from 'chalk';
 
 export interface Clonable {
    // id: number;
@@ -125,6 +125,17 @@ export class Graph<T extends Clonable> {
       return elem;
    }
 
+   cloneAdjacencyMatrix() {
+      let clone = new Array(this.vertices.length).fill(false).map(() => new Array(this.vertices.length).fill(false));
+      for(let x = 0; x < this.adjacent.length; ++x) {
+         for(let y = 0; y < this.adjacent.length; ++y) {
+            //console.log(x, y, clone[x][y]);
+            clone[x][y] = this.adjacent[x][y];
+         }
+      }
+      return clone;
+   }
+
    // deleteVertex(vertex:Vertex<T>) {
    //    vertex.delete();
    //}
@@ -226,29 +237,31 @@ export class Graph<T extends Clonable> {
    }
 
    printAdjacencyMatrix():void {
-      console.log("=== adjacency matrix ===");
+      console.log(chalk.red("=== adjacency matrix ==="));
+      
 
       const rowBuilder = (k:number, sz:number) => {
-         const charCount = 4 + 3*this.adjacent.length;
-         const cutoff = 4 + k*3;
+         const charCount = 5 + 3*this.adjacent.length;
+         const cutoff = 5 + k*3;
          const name = this.vertices[k].name + "; id: " + this.vertices[k].id + "; k: " + k;
          let row = "";
          for(let char = 0; char < charCount; ++char) {
             if(char < cutoff) {
-               row += ((char%3) == 1 && char != 1) ? "|" : " ";
+               row += ((char%3) == 2 && char != 2) ? "|" : " ";
             }else{
                row += (char == cutoff) ? "," : "-";
             }
          }
          return row + " " + name;
       }
-
       const zeroToN = Array.from(Array(this.adjacent.length).keys());
       console.log(zeroToN.map(rowBuilder).join( "\n"));
-
-
       for(let k = 0; k < this.adjacent.length;++k)
-         console.log(k, this.adjacent[k].map( x => (x) ? 1 : 0 ), this.vertices[k].name);
+         console.log(
+            chalk.black.bgGreenBright((k<10) ? `0${k}` : k)
+          , this.adjacent[k].map( x => (x) ? 1 : 0 )
+          , this.vertices[k].name
+         );
       console.log("========================");
    }
 
